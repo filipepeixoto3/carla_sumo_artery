@@ -15,7 +15,7 @@ These include modifications and integration points used to enable synchronized c
 
 ### `docs/`
 Contains the **Sphinx-generated manual**, ready to be deployed (e.g., GitHub Pages / Google Pages).  
-This is the compiled output of the documentation.
+This is the compiled output of the documentation. Access here: https://filipepeixoto3.github.io/carla_sumo_artery/
 
 ### `frame_manual.zip`
 Contains the **source Sphinx folders** used to generate the documentation present in `docs/`.  
