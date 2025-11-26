@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services>
+<!--	
+    <service type="artery.application.CaService" name="CA">
+        <listener port="2001" />
+    </service>
+-->	    	    
+
+<service type="artery.application.YourService" name="YS">
+        <listener port="2025" />
+    </service>
+
+</services>
