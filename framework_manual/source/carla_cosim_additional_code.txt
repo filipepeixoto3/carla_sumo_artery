@@ -1,0 +1,24 @@
+bridge_helper.py:
+    get_carla_transform_person() added based on get_carla_transform - may not be necessary
+    get_carla_blueprint() is now get_carla_blueprint_actor() and get_carla_blueprint_person() - maybe it only required on function with an if statement
+
+carla_simulation.py:
+    **place here**
+
+sumo_simulation.py:
+    in SumoSimulation()
+        __init__()  - self.cfg_file =  cfg_file - saved to be returned in a function in oder to set the town in the run_synchronization.py
+                    - self.spawned_persons = set() & self.destroyed_persons = set() - Same thing as for actors, but for persons
+        subscribe() is now subscribe_actor() and subscribe_person()
+        get_seat_params() to place the driver (optional)
+        unsubscribe() does not have a method for persons, this is why the pedestrians don't disappear when the sim is canceled
+        get_actor() has speed now
+        get_person() is similar to get_actor() but for persons
+        set_sumo_vehicle_color() was added so that SUMO has the right vehicle color
+        in tick() - self.spawned_persons = set(traci.simulation.getDepartedPersonIDList()) & self.destroyed_persons = set(traci.simulation.getArrivedPersonIDList())
+        get_cfg_file() - to be returned in a function in oder to set the town in the run_synchronization.py
+constants.py:
+    No changes
+
+run_synchronization.py:
+    Persons added to the simulation, replicate code from 

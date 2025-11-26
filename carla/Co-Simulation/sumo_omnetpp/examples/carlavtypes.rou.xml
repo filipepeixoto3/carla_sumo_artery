@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2023-12-04 12:44:09 by Eclipse SUMO netedit Version 1.18.0
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+	<!-- VTypes -->
+    <vType id="vehicle.audi.a2" length="3.72" vClass="passenger" width="1.79" height="1.54"/>
+    <vType id="vehicle.audi.etron" length="4.89" vClass="evehicle" width="2.09" height="1.65"/>
+    <vType id="vehicle.audi.tt" length="4.15" vClass="passenger" width="2.00" height="1.38"/>
+    <vType id="vehicle.bh.crossbike" length="1.51" vClass="bicycle" width="0.87" height="1.53"/>
+    <vType id="vehicle.bmw.grandtourer" length="4.64" vClass="passenger" width="2.26" height="1.68"/>
+    <vType id="vehicle.carlamotors.carlacola" length="5.20" vClass="truck" guiShape="truck" width="2.62" height="2.48"/>
+    <vType id="vehicle.chevrolet.impala" length="5.37" vClass="passenger" width="2.05" height="1.42"/>
+    <vType id="vehicle.citroen.c3" length="3.98" vClass="passenger" width="1.86" height="1.63"/>
+    <vType id="vehicle.diamondback.century" length="1.66" vClass="bicycle" width="0.42" height="1.49"/>
+    <vType id="vehicle.dodge.charger_police" length="5.01" vClass="authority" guiShape="police" width="2.05" height="1.58"/>
+    <vType id="vehicle.ford.mustang" length="4.90" vClass="passenger" width="2.06" height="1.48"/>
+    <vType id="vehicle.gazelle.omafiets" length="1.84" vClass="bicycle" width="0.47" height="1.59"/>
+    <vType id="vehicle.harley-davidson.low_rider" length="2.35" vClass="motorcycle" width="0.77" height="1.46"/>
+    <vType id="vehicle.jeep.wrangler_rubicon" length="3.87" vClass="passenger" width="1.91" height="1.88"/>
+    <vType id="vehicle.kawasaki.ninja" length="2.04" vClass="motorcycle" width="0.80" height="1.37"/>
+    <vType id="vehicle.lincoln.mkz_2017" length="4.90" vClass="passenger" width="2.06" height="1.48"/>
+    <vType id="vehicle.mercedes.coupe" length="5.04" vClass="passenger" width="2.16" height="1.64"/>
+    <vType id="vehicle.micro.microlino" length="2.20" vClass="evehicle" width="1.49" height="1.35"/>
+    <vType id="vehicle.mini.cooper_s" length="3.80" vClass="passenger" width="1.97" height="1.48"/>
+    <vType id="vehicle.nissan.micra" length="3.67" vClass="passenger" width="1.86" height="1.52"/>
+    <vType id="vehicle.nissan.patrol" length="4.52" vClass="passenger" width="1.92" height="1.89"/>
+    <vType id="vehicle.seat.leon" length="4.21" vClass="passenger" width="1.82" height="1.47"/>
+    <vType id="vehicle.tesla.cybertruck" length="6.36" vClass="evehicle" width="2.39" height="2.14"/>
+    <vType id="vehicle.tesla.model3" length="4.81" vClass="evehicle" width="2.17" height="1.52"/>
+    <vType id="vehicle.toyota.prius" length="4.54" vClass="evehicle" width="2.00" height="1.54"/>
+    <vType id="vehicle.volkswagen.t2" length="4.47" vClass="passenger" guiShape="passenger/van" width="1.81" height="2.05"/>
+    <vType id="vehicle.yamaha.yzf" length="2.19" vClass="motorcycle" width="0.77" height="1.63"/>
+    <!-- Persons -->
+    <!-- Adult pedestrian 1 variants -->
+    <vType id="walker.pedestrian.0001" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0005" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0006" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0007" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0008" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- Adult pedestrian 2 variants --> 
+    <vType id="walker.pedestrian.0002" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0003" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0004" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- Adult pedestrian 3 variants -->
+    <vType id="walker.pedestrian.0015" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0019" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- Adult pedestrian 4 variants -->
+    <vType id="walker.pedestrian.0016" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0017" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- Adult pedestrian 5 variants -->
+    <vType id="walker.pedestrian.0026" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0018" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- Adult pedestrian 6 variants -->
+    <vType id="walker.pedestrian.0020" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0021" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- Adult pedestrian 7 variants -->
+    <vType id="walker.pedestrian.0022" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0023" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- Adult pedestrian 8 variants -->
+    <vType id="walker.pedestrian.0024" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- kids -->
+    <vType id="walker.pedestrian.0025" length="0.3752" vClass="pedestrian" width="0.3752" height="1.10"/>
+    <!-- Adult pedestrian 9 variants -->
+    <vType id="walker.pedestrian.0027" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0028" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0029" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- Adult pedestrian 10 variants -->
+    <vType id="walker.pedestrian.0031" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0033" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0040" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0041" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- Adult pedestrian 11 variants -->
+    <vType id="walker.pedestrian.0034" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0038" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- Adult pedestrian 12 variants -->
+    <vType id="walker.pedestrian.0035" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0036" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0037" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- Adult pedestrian 13 variants -->
+    <vType id="walker.pedestrian.0039" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <!-- Child pedestrian 1 variants -->
+    <vType id="walker.pedestrian.0009" length="0.3752" vClass="pedestrian" width="0.3752" height="1.10"/>
+    <vType id="walker.pedestrian.0010" length="0.3752" vClass="pedestrian" width="0.3752" height="1.10"/>
+    <vType id="walker.pedestrian.0011" length="0.3752" vClass="pedestrian" width="0.3752" height="1.10"/>
+    <!-- Child pedestrian 2 variants -->
+    <vType id="walker.pedestrian.0012" length="0.3752" vClass="pedestrian" width="0.3752" height="1.30"/>
+    <vType id="walker.pedestrian.0013" length="0.3752" vClass="pedestrian" width="0.3752" height="1.30"/>
+    <vType id="walker.pedestrian.0014" length="0.3752" vClass="pedestrian" width="0.3752" height="1.30"/>
+    <!-- Police variants -->
+    <vType id="walker.pedestrian.0030" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+    <vType id="walker.pedestrian.0032" length="0.3752" vClass="pedestrian" width="0.3752" height="1.86"/>
+</routes>

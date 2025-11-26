@@ -1,0 +1,174 @@
+				RUN CARLA + SUMO
+
+Run CARLA: 	$ cd ~/tools/CARLA_0.9.12
+		$ ./CarlaUE4.sh -carla-port=2003 -norelativemousemode -RenderOffScreen| ./CarlaUE4.sh --quality-level=Low -carla-port=2003 -norelativemousemode
+
+Switch map:	$ cd ~/tools/CARLA_0.9.12/PythonAPI/util
+		$ export CARLA_ROOT=/home/pei4brg/tools/CARLA_0.9.12/
+		$ export PYTHONPATH=$PYTHONPATH:$CARLA_ROOT/PythonAPI/carla/dist/carla-0.9.12-py3.7-linux-x86_64.egg:$CARLA_ROOT/PythonAPI/carla
+		$ python3 config.py --map Town05 --port 2003
+
+Run SUMO:	$ cd ~/tools/CARLA_0.9.12/Co-Simulation/Sumo/
+		$ export CARLA_ROOT=/home/pei4brg/tools/CARLA_0.9.12/
+		$ export PYTHONPATH=$PYTHONPATH:$CARLA_ROOT/PythonAPI/carla/dist/carla-0.9.12-py3.7-linux-x86_64.egg:$CARLA_ROOT/PythonAPI/carla
+		$ python3 run_synchronization.py examples/Townx.sumocfg --sumo-gui --carla-host 127.0.0.1 --carla-port 2003
+
+Run CARLAVIZ:	$ newgrp docker
+		$ docker run -it --network="host" -e CARLAVIZ_HOST_IP=localhost -e CARLAVIZ_HOST_PORT=8080 -e CARLA_SERVER_IP=localhost -e CARLA_SERVER_PORT=2003 mjxu96/carlaviz:0.9.12 open "127.0.0.1:8080" on your browser		
+
+				RUN CARLA + SUMO + OMNET++
+
+Run OMNeT++:	$ cd ~/tools/omnetpp-5.7.1
+		$ source setenv
+		$ omnetpp
+		go to "veins/examples/carla_cosim" and run omnetpp.ini
+
+Run CARLA: 	$ cd ~/tools/CARLA_0.9.12
+		$ ./CarlaUE4.sh --quality-level=Low -carla-port=2003 -norelativemousemode
+
+Run SUMO:	$ sumo -c ~/tools/CARLA_0.9.12/Co-Simulation/Custom/examples/Townx.sumocfg --remote-port 9000 --num-clients 2
+		
+		(sumo -c examples/veins/erlangen.sumo.cfg --remote-port 9090)
+
+		$ cd ~/tools/CARLA_0.9.12/Co-Simulation/Custom/
+		$ export CARLA_ROOT=/home/pei4brg/tools/CARLA_0.9.12/
+		$ export PYTHONPATH=$PYTHONPATH:$CARLA_ROOT/PythonAPI/carla/dist/carla-0.9.12-py3.7-linux-x86_64.egg:$CARLA_ROOT/PythonAPI/carla
+		$ python3 run_synchronization.py examples/Town05.sumocfg --sumo-gui --sumo-host 127.0.0.1 --sumo-port 9000 --carla-host 127.0.0.1 --carla-port 2003
+
+Run CARLAVIZ:	$ newgrp docker
+		$ docker run -it --network="host" -e CARLAVIZ_HOST_IP=localhost -e CARLAVIZ_HOST_PORT=8080 -e CARLA_SERVER_IP=localhost -e CARLA_SERVER_PORT=2003 mjxu96/carlaviz:0.9.12 open "127.0.0.1:8080" on your browser		
+
+
+####################################################################################################################################################################################################################################
+	
+
+		Obstacles on VEINS (SUMO + OMNeT++):
+	
+	Run CARLA;
+	Switch map;
+
+	$ vi print_buildings.py
+	remove the comment on the offset of the town you wanna use
+		
+	$ cd ~/tools/CARLA_0.9.12
+	$ export CARLA_ROOT=/home/pei4brg/tools/CARLA_0.9.12/
+	$ export PYTHONPATH=$PYTHONPATH:$CARLA_ROOT/PythonAPI/carla/dist/carla-0.9.12-py3.7-linux-x86_64.egg:$CARLA_ROOT/PythonAPI/carla
+	$ python3 print_buildings.py
+	past the output on "poly/Townx.poly.xml" located on -> $ cd /home/peibrg/tools/CARLA_0.9.12/Co-Simulation/Custom/examples/pol
+	
+	$ vi ~/tools/CARLA_0.9.12/Co-Simulation/Custom/examples/Townx.sumocfg
+	add this line: <additional-files value="poly/Townx.poly.xml"/>
+
+####################################################################################################################################################################################################################################
+			
+		KILL PROCESSES:
+	ps -aux | grep "key_word"
+	kill -9 "pid"
+		
+		
+See if a port is beeing used: 
+	netstat -tulpn | grep :2000
+
+xfce4-panel
+####################################################################################################################################################################################################################################
+
+		Artery
+
+Artery: $ cmake --build build --target run_"nome do scenario"
+
+para abrir o sumo-gui, add '*.traci.launcher.sumo = "sumo-gui"' to omnetpp.ini file
+
+run VEINS example without omnet++ ide:
+	$ cd ~/tools/artery/extern/veins/examples/veins
+	$ export PATH=~/tools/omnetpp-5.7.1/bin:$PATH
+	$ opp_makemake
+	$ make
+	$ ./run
+
+####################################################################################################################################################################################################################################
+
+	FIX PROXY
+
+ps -aux | grep proxy
+e ver quem é que é o dono do proxy. isto vai mudando
+bof2brg     4663  0.0  0.0 793956 34996 ?        Ssl  May21   1:31 /usr/bin/python3 /opt/osd/proxy/proxy_negotiate.py
+portanto pede-se ao fabricio para fazer 'osd-proxy-restart'
+e em principio o proxy fica arranjado.
+para testar, tens de fazer sudo apt-get update
+e ele tem de consguir buscar todos os mirrors, sejam externos ou internos
+
+####################################################################################################################################################################################################################################
+
+verificar se a driver está a dar: nvidia-smi
+
+####################################################################################################################################################################################################################################
+
+	RUN EVERYTHING
+
+http://artery.v2x-research.eu/vscode/
+
+
+cd ~/tools/CARLA_0.9.12
+./CarlaUE4.sh -carla-port=2003 -norelativemousemode -RenderOffScreen
+
+------------------------------------------------------------------------- 
+cd ~/tools/CARLA_0.9.12/PythonAPI/util
+export CARLA_ROOT=/home/pei4brg/tools/CARLA_0.9.12/
+export PYTHONPATH=$PYTHONPATH:$CARLA_ROOT/PythonAPI/carla/dist/carla-0.9.12-py3.7-linux-x86_64.egg:$CARLA_ROOT/PythonAPI/carla
+python3 config.py --map Town05 --port 2003
+
+-------------------------------------------------------------------------
+ulimit -n 4096
+xfce4-panel
+export PYTHONPATH="$SUMO_HOME/tools:$PYTHONPATH"
+-------------------------------------------------------------------------
+sumo -c ~/tools/CARLA_0.9.12/Co-Simulation/ParkingLot-Safety/examples/Town05.sumocfg --remote-port 9090 --num-clients 2
+
+sumo-gui -c ~/tools/CARLA_0.9.12/Co-Simulation/ParkingLot-Safety/examples/Town05.sumocfg --remote-port 9090 --num-clients 2
+
+-------------------------------------------------------------------------
+cd ~/tools/CARLA_0.9.12/Co-Simulation/ParkingLot-Safety
+export CARLA_ROOT=/home/pei4brg/tools/CARLA_0.9.12/
+export PYTHONPATH=$PYTHONPATH:$CARLA_ROOT/PythonAPI/carla/dist/carla-0.9.12-py3.7-linux-x86_64.egg:$CARLA_ROOT/PythonAPI/carla
+python3 run_synchronization.py examples/Town05.sumocfg --sumo-gui --sumo-host 127.0.0.1 --sumo-port 9090 --carla-host 127.0.0.1 --carla-port 2003 --trafficmanager-port 9999 --zmq-port 7777 --tls-manager sumo
+
+-------------------------------------------------------------------------
+cd ~/tools/artery/
+cmake --build build --target run_v2v
+
+RUN COSIM BASED ON MY DESKTOP SETUP!!!!
+
+cd C:\DissertationSoftwares\CARLA_0.9.15\
+CarlaUE4.exe -RenderOffScreen
+-RenderOffScreen -traffic-manager-port=9999 -carla-server=192.168.31.248 --world-port=2000
+
+-------------------------------------------------------------------------
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+cd C:\DissertationSoftwares\CARLA_0.9.15\Co-Simulation\ParkingLot
+$env:PYTHONPATH = "C:\DissertationSoftwares\CARLA_0.9.15\PythonAPI\carla\dist\carla-0.9.15-py3.7-win-amd64.egg;C:\DissertationSoftwares\CARLA_0.9.15\PythonAPI\carla"
+py -3.7 run_synchronization.py examples/Town05.sumocfg --sumo-host 192.168.31.22 --sumo-port 9090 --zmq-port 5555 --tls-manager sumo  --carla-host 192.168.31.248 --carla-port 2000 --step-length 0.05
+( --trafficmanager-port 9999 --sumo-gui --step-length 0.05)
+-------------------------------------------------------------------------
+cd ~/tools/artery/
+cmake --build build --target run_v2v
+-------------------------------------------------------------------------
+cd C:\DissertationSoftwares\CARLA_0.9.15\PythonAPI\util\
+py -3.7 config_2.py --map Town05_Opt
+
+-------------------------------------------------------------------------
+cd '.\OneDrive - Universidade do Minho\Ambiente de Trabalho\5th_year\dissertation\python_scripts\'
+
+
+-------------------------------------------------------------------------
+FOR MANUAL!
+
+cd C:\DissertationSoftwares\CARLA_0.9.15\
+CarlaUE4.exe
+
+cd C:\DissertationSoftwares\CARLA_0.9.15\PythonAPI\util\
+py -3.7 config.py --map Town05_Opt
+
+cd C:\DissertationSoftwares\CARLA_0.9.15\Co-Simulation\sumo_omnetpp
+$env:PYTHONPATH = "C:\DissertationSoftwares\CARLA_0.9.15\PythonAPI\carla\dist\carla-0.9.15-py3.7-win-amd64.egg;C:\DissertationSoftwares\CARLA_0.9.15\PythonAPI\carla"
+py -3.7 run_synchronization.py examples/Town05.sumocfg --sumo-host 192.168.31.22 --sumo-port 9090 --zmq-port 5555 --tls-manager sumo  --carla-host 192.168.31.248 --carla-port 2000 --step-length 0.05
