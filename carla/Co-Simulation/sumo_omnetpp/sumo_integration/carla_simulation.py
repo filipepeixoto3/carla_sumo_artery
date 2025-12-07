@@ -1,85 +1,83 @@
-CARLA and SUMO Setup
-====================
+#!/usr/bin/env python
 
-This section explains how to adapt the CARLA–SUMO co-simulation framework so it can interface with a network simulator through ZeroMQ.  
-CARLA has supported native SUMO co-simulation since version 0.9.8, enabling synchronized actions and state between both simulators.  
-Here, we extend this functionality to broadcast CARLA sensor data to an external network simulator.
+# Copyright (c) 2020 Computer Vision Center (CVC) at the Universitat Autonoma de
+# Barcelona (UAB).
+#
+# This work is licensed under the terms of the MIT license.
+# For a copy, see <https://opensource.org/licenses/MIT>.
+""" This module is responsible for the management of the carla simulation. """
 
-All required integration files are located in:
+# ==================================================================================================
+# -- imports ---------------------------------------------------------------------------------------
+# ==================================================================================================
 
-``Path/To/CARLA/Co-Simulation/Sumo``
+import logging
+import numpy as np
+import carla  # pylint: disable=import-error
+import math
+import zmq
+import json
+import threading
 
-Make a copy of that directory and rename it to something like:
+from .constants import INVALID_ACTOR_ID, SPAWN_OFFSET_Z
 
-``sumo_omnetpp``  
+from sumo_integration.bridge_helper import BridgeHelper
 
-This new directory will hold all modifications needed to connect CARLA, SUMO, and Artery.
-
-carla_simulation.py Modifications
----------------------------------
-
-ZeroMQ (ZMQ) is the central component that enables communication between CARLA and Artery.  
-Begin by modifying:
-
-``Path/To/CARLA/Co-Simulation/sumo_omnetpp/sumo_integration/carla_simulation.py``
-
-Add the required import at the top of the file:
-
-.. code-block:: python
-   :linenos:
-   :caption: Import ZeroMQ in carla_simulation.py
-
-   import zmq
+# ==================================================================================================
+# -- carla simulation ------------------------------------------------------------------------------
+# ==================================================================================================
 
 
-Constructor Updates
-~~~~~~~~~~~~~~~~~~~
+class CarlaSimulation(object):
+    """
+    CarlaSimulation is responsible for the management of the carla simulation.
+    """
+    def __init__(self, host, port, sumo_cfg, step_length, zmq_port=5555):
+        self.client = carla.Client(host, port)
+        self.client.set_timeout(30.0)
+        self.host = host
+        self.start_time = 0
+        self.sumo_cfg = sumo_cfg
 
-Modify the :meth:`CarlaSimulation.__init__` function so that it:
+        self.world = self.client.get_world()
+        
+        self.blueprint_library = self.world.get_blueprint_library()
+        self.step_length = step_length
 
-1. Accepts a ZMQ port (default 5555)  
-2. Initializes the ZMQ server  
-3. Creates lists for router sockets and CARLA sensors  
-4. Stores a mapping between SUMO vehicle IDs and CARLA vehicle IDs  
+        # The following sets contain updated information for the current frame.
+        self._active_actors = set()
+        self.spawned_actors = set()
+        self.destroyed_actors = set()
 
-.. code-block:: python
-   :linenos:
-   :caption: CarlaSimulation.__init__ modifications
 
-   class CarlaSimulation(object):
-       """
-       CarlaSimulation is responsible for managing the CARLA simulation instance.
-       """
-       def __init__(self, host, port, step_length, zmq_port=5555):
-           [...]
-            self.host = host
-            self.start_time = 0
-           # ZMQ
-           self.zmq_port = zmq_port
-           self.start_zmq_server()
-           self.sensor_router_socket_list = []
-           self.sensor_list = []
-           self.sumo2carla_ids = {}  # maps SUMO vehicle IDs to CARLA vehicle IDs
-           [...]
+        # Set traffic lights.
+        self._tls = {}  # {landmark_id: traffic_ligth_actor}
 
-Add a setter for the start timestamp:
+        tmp_map = self.world.get_map()
+        for landmark in tmp_map.get_all_landmarks_of_type('1000001'):
+            if landmark.id != '':
+                traffic_ligth = self.world.get_traffic_light(landmark)
+                if traffic_ligth is not None:
+                    self._tls[landmark.id] = traffic_ligth
+                else:
+                    logging.warning('Landmark %s is not linked to any traffic light', landmark.id)
+        # sensor data collection
+        self.sensor_list = []
+        self.send_receive=0
+        self.uss_msg = dict()
+        
+        # ZMQ stuff
+        self.zmq_port = zmq_port
+        self.start_zmq_server()
+        self.sensor_router_socket_list = []
 
-.. code-block:: python
-   :linenos:
-   :caption: Set start time
+        # Added by Marcelo
+        self.sumo2carla_ids = {}
+        
 
     def set_start_time(self,start_time):
-        self.start_time = start_time
+        self.start_time = start_time 
 
-ZMQ Server and Router Thread
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Next, define the ZMQ server and internal router.  
-The server publishes sensor data externally, while the router listens to in-process channels and forwards messages.
-
-.. code-block:: python
-   :linenos:
-   :caption: start_zmq_server and router methods
 
     def start_zmq_server(self):
         self.context = zmq.Context()
@@ -111,34 +109,60 @@ The server publishes sensor data externally, while the router listens to in-proc
         finally:
             router_socket.close()
 
-Sensor Integration
-------------------
+    def get_actor(self, actor_id):
+        """
+        Accessor for carla actor.
+        """
+        return self.world.get_actor(actor_id)
 
-Before adding sensors, note that **camera-based sensors are not suitable** for this architecture.  
-Their frames must be processed externally, and transmitting raw images over ZMQ is inefficient.  
-Instead, use lightweight numeric sensors such as:
+    # This is a workaround to fix synchronization issues when other carla clients remove an actor in
+    # carla without waiting for tick (e.g., running sumo co-simulation and manual control at the
+    # same time)
+    def get_actor_light_state(self, actor_id):
+        """
+        Accessor for carla actor light state.
 
-* ``sensor.other.obstacle``  
-* ``sensor.lidar.ray_cast``  
-* ``sensor.other.radar``  
+        If the actor is not alive, returns None.
+        """
+        try:
+            actor = self.get_actor(actor_id)
+            return actor.get_light_state()
+        except RuntimeError:
+            return None
 
-Obstacle Sensor Attachment
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+    @property
+    def traffic_light_ids(self):
+        return set(self._tls.keys())
 
-Each vehicle will receive one obstacle sensor upon creation.  
-Append the following block to the end of :meth:`CarlaSimulation.spawn_actor`:
+    def get_traffic_light_state(self, landmark_id):
+        """
+        Accessor for traffic light state.
 
-.. code-block:: python
-   :linenos:
-   :caption: Spawning an obstacle sensor with each vehicle
+        If the traffic ligth does not exist, returns None.
+        """
+        if landmark_id not in self._tls:
+            return None
+        return self._tls[landmark_id].state
 
-   def spawn_actor(self, blueprint, transform):
-       """
-       Spawns a new actor.
-       ...
-       """
-       [...]
-       if "vehicle" in blueprint.id:
+    def switch_off_traffic_lights(self):
+        """
+        Switch off all traffic lights.
+        """
+        for actor in self.world.get_actors():
+            if actor.type_id == 'traffic.traffic_light':
+                actor.freeze(True)
+                # We set the traffic light to 'green' because 'off' state sets the traffic light to
+                # 'red'.
+                actor.set_state(carla.TrafficLightState.Green)
+
+
+    def spawn_actor(self, blueprint, transform):
+        """
+        Spawns a new actor.
+        ...
+        """
+        [...]
+        if "vehicle" in blueprint.id:
             car = self.world.get_actor(response.actor_id)
             car_length = car.bounding_box.extent.x
             car_width = car.bounding_box.extent.y
@@ -179,16 +203,7 @@ Append the following block to the end of :meth:`CarlaSimulation.spawn_actor`:
                             self.sensor_router_socket_list[idx_],
                         )
                     )
-
-Sensor Callback
-~~~~~~~~~~~~~~~~
-
-This function receives sensor data, formats the message, and publishes it through ZMQ.
-
-.. code-block:: python
-   :linenos:
-   :caption: sensor_callback method
-
+    
     def sensor_callback(self, sensor_msrmnt, vehicle_id, sensor_id, zmq_socket):
         obst_msg = dict()
         obst_msg["message_type"] = "OBSTACLE_DATA"
@@ -210,13 +225,6 @@ This function receives sensor data, formats the message, and publishes it throug
         topic = carla2sumo_id + ".obst" + str(sensor_id)
         zmq_socket.send_multipart([topic.encode("utf-8"), json.dumps(obst_msg).encode("utf-8")])
 
-Actor Destruction
-~~~~~~~~~~~~~~~~~
-
-.. code-block:: python
-   :linenos:
-   :caption: destroy_actor method
-
     def destroy_actor(self, actor_id):
         """
         Destroys the given actor.
@@ -231,17 +239,131 @@ Actor Destruction
                 cmd_batch.append(carla.command.DestroyActor(sensor.id))
         if cmd_batch:
             self.client.apply_batch_sync(cmd_batch, False)
-            
+
         if actor is not None:
             return actor.destroy()
         return False
 
-Close Method
-~~~~~~~~~~~~
+    def synchronize_vehicle(self, vehicle_id, transform, lights=None):
+        """
+        Updates vehicle state.
+            :param vehicle_id: id of the actor to be updated.
+            :param transform: new vehicle transform (i.e., position and rotation).
+            :param lights: new vehicle light state.
+            :return: True if successfully updated. Otherwise, False.
+        """
+        vehicle = self.world.get_actor(vehicle_id)
+        if vehicle is None:
+            return False
 
-.. code-block:: python
-   :linenos:
-   :caption: close method to gracefully stop CARLA
+        vehicle.set_transform(transform)
+        if lights is not None:
+            vehicle.set_light_state(carla.VehicleLightState(lights))
+        return True
+
+    def animate_person(self, person, sumo_person, cur_stage, prev_stage, seat_params):
+            
+            # Sitting/driving vehicle pose
+            if (cur_stage.description=="driving" and prev_stage.description=="walking"):
+
+                # Extract information about vehicle the person is riding on.
+                #frontSeatPos, seatingWidth = seat_params
+                frontSeatPos = float(seat_params[0][1])
+                seatingWidth = float(seat_params[1][1])
+                height = seat_params[2]
+                # use default values if empty
+                if (frontSeatPos==0): frontSeatPos=2
+                if (seatingWidth==0): seatingWidth=1.3
+                if (height==0): height=1.5
+                
+                #print("driving on vtype=", cur_stage.vType, " height=", height)
+
+                bones = person.get_bones()
+                new_pose = []
+                for bone in bones.bone_transforms:
+                    # hands on the steering wheel
+                    if bone.name == "crl_foreArm__L":
+                        bone.relative.rotation.pitch -= 90
+                        new_pose.append((bone.name, bone.relative))
+                    elif bone.name == "crl_foreArm__R":
+                        bone.relative.rotation.pitch -= 90
+                        new_pose.append((bone.name, bone.relative))
+                    # legs forwards
+                    elif bone.name == "crl_thigh__R":
+                        bone.relative.rotation.roll -= 90
+                        new_pose.append((bone.name, bone.relative))
+                    elif bone.name == "crl_thigh__L":
+                        bone.relative.rotation.roll -= 90
+                        new_pose.append((bone.name, bone.relative))
+                    # knees bent slightly downwards
+                    elif bone.name == "crl_leg__R":
+                        bone.relative.rotation.roll -= 10
+                        new_pose.append((bone.name, bone.relative))
+                    elif bone.name == "crl_leg__L":
+                        bone.relative.rotation.roll -= 10
+                        new_pose.append((bone.name, bone.relative))
+                    # offset to put person in the driver's steat     
+                    elif bone.name == "crl_root":
+                        bone.relative.location.x += seatingWidth/4
+                        bone.relative.location.y -= frontSeatPos
+                        bone.relative.location.z -= 0.5
+                        new_pose.append((bone.name, bone.relative))
+
+                control = carla.WalkerBoneControlIn()
+                control.bone_transforms = new_pose
+                person.set_bones(control)
+                person.blend_pose(1.0)
+            elif (cur_stage.description=="walking"):
+                control = carla.WalkerControl(
+                            speed=sumo_person.speed,
+                            direction=carla.Vector3D(x=1.0, y=0.0, z=0.0),
+                            jump=False)
+                person.apply_control(control)
+                person.blend_pose(0.0)
+
+    def animate_actor(self, actor, current_yaw, previous_yaw, speed):
+        diff=current_yaw-previous_yaw
+        factor=1/(self.step_length*5)
+        
+        # make wheels turns. they don't spin. spinning requires CARLA phyisics which we do not desire.
+        actor.set_wheel_steer_direction(carla.VehicleWheelLocation.FL_Wheel, diff*factor)    # diff*factor
+        actor.set_wheel_steer_direction(carla.VehicleWheelLocation.FR_Wheel, diff*factor)    # diff*factor
+
+    def synchronize_traffic_light(self, landmark_id, state):
+        """
+        Updates traffic light state.
+
+            :param landmark_id: id of the landmark to be updated.
+            :param state: new traffic light state.
+            :return: True if successfully updated. Otherwise, False.
+        """
+        if not landmark_id in self._tls:
+            # logging.warning('Landmark %s not found in carla', landmark_id)
+            return False
+
+        traffic_light = self._tls[landmark_id]
+        traffic_light.set_state(state)
+        return True
+
+    def tick(self):
+        """
+        Tick to carla simulation.
+        """
+        self.world.tick()
+
+        # Update data structures for the current frame.
+        current_actors = set(
+            [vehicle.id for vehicle in self.world.get_actors().filter('vehicle.*')])
+        self.spawned_actors = current_actors.difference(self._active_actors)
+        self.destroyed_actors = self._active_actors.difference(current_actors)
+        self._active_actors = current_actors
+
+        # Same thing, but for persons.
+        current_persons = set(
+            [walker.id for walker in self.world.get_actors().filter('walker.*')])
+        self.spawned_person = current_persons.difference(self._active_persons)
+        self.destroyed_persons = self._active_persons.difference(current_persons)
+        self._active_persons = current_persons
 
     def close(self):
         """
@@ -266,29 +388,3 @@ Close Method
                 self.context.term()
         except Exception:
             pass
-
-run_synchronization.py Modifications
-------------------------------------
-
-Import ``carla`` at the top of the script:
-
-.. code-block:: python
-   :linenos:
-   :caption: import carla in run_synchronization.py
-
-   import carla
-
-Update the constructor to pass the SUMO–CARLA ID map:
-
-.. code-block:: python
-   :linenos:
-   :caption: SimulationSynchronization.__init__
-
-   class SimulationSynchronization(object):
-       """
-       Handles the synchronization between SUMO and CARLA simulations.
-       """
-       def __init__(self, sumo_simulation, carla_simulation, tls_manager="none",
-                    sync_vehicle_color=False, sync_vehicle_lights=False):
-           [...]
-           self
