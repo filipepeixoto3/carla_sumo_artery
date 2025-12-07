@@ -32,12 +32,13 @@ class CarlaSimulation(object):
     """
     CarlaSimulation is responsible for the management of the carla simulation.
     """
-    def __init__(self, host, port, sumo_cfg, step_length, zmq_port=5555):
+    def __init__(self, host, port, step_length, zmq_port=5555):
         self.client = carla.Client(host, port)
         self.client.set_timeout(30.0)
         self.host = host
         self.start_time = 0
-        self.sumo_cfg = sumo_cfg
+
+        self.stop_event = threading.Event()
 
         self.world = self.client.get_world()
         
@@ -159,9 +160,23 @@ class CarlaSimulation(object):
     def spawn_actor(self, blueprint, transform):
         """
         Spawns a new actor.
-        ...
+
+            :param blueprint: blueprint of the actor to be spawned.
+            :param transform: transform where the actor will be spawned.
+            :return: actor id if the actor is successfully spawned. Otherwise, INVALID_ACTOR_ID.
         """
-        [...]
+        transform = carla.Transform(transform.location + carla.Location(0, 0, SPAWN_OFFSET_Z),
+                                    transform.rotation)
+
+        batch = [
+            carla.command.SpawnActor(blueprint, transform).then(
+                carla.command.SetSimulatePhysics(carla.command.FutureActor, False))
+        ]
+        response = self.client.apply_batch_sync(batch, False)[0]
+        if response.error:
+            logging.error('Spawn carla actor failed. %s', response.error)
+            return INVALID_ACTOR_ID
+        
         if "vehicle" in blueprint.id:
             car = self.world.get_actor(response.actor_id)
             car_length = car.bounding_box.extent.x
@@ -203,6 +218,8 @@ class CarlaSimulation(object):
                             self.sensor_router_socket_list[idx_],
                         )
                     )
+        
+        return response.actor_id
     
     def sensor_callback(self, sensor_msrmnt, vehicle_id, sensor_id, zmq_socket):
         obst_msg = dict()
@@ -358,12 +375,6 @@ class CarlaSimulation(object):
         self.destroyed_actors = self._active_actors.difference(current_actors)
         self._active_actors = current_actors
 
-        # Same thing, but for persons.
-        current_persons = set(
-            [walker.id for walker in self.world.get_actors().filter('walker.*')])
-        self.spawned_person = current_persons.difference(self._active_persons)
-        self.destroyed_persons = self._active_persons.difference(current_persons)
-        self._active_persons = current_persons
 
     def close(self):
         """
